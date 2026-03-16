@@ -30,25 +30,27 @@ export default function AddBook() {
 
   async function startScanner() {
     setError('')
+    setScanning(true)
+  }
+
+  useEffect(() => {
+    if (!scanning) return
     const scanner = new Html5Qrcode('reader')
     scannerRef.current = scanner
-    setScanning(true)
 
-    try {
-      await scanner.start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 250, height: 150 } },
-        async (decodedText) => {
-          await stopScanner()
-          await fetchBookByIsbn(decodedText)
-        },
-        undefined
-      )
-    } catch {
+    scanner.start(
+      { facingMode: 'environment' },
+      { fps: 10, qrbox: { width: 250, height: 150 } },
+      async (decodedText) => {
+        await stopScanner()
+        await fetchBookByIsbn(decodedText)
+      },
+      undefined
+    ).catch(() => {
       setError('Impossibile accedere alla fotocamera.')
       setScanning(false)
-    }
-  }
+    })
+  }, [scanning])
 
   async function stopScanner() {
     if (scannerRef.current && scannerRef.current.isScanning) {
@@ -153,17 +155,25 @@ export default function AddBook() {
               📷 Scansiona barcode
             </button>
           ) : (
-            <div style={{ marginBottom: 16 }}>
-              <div id="reader" style={{ width: '100%', borderRadius: 12, overflow: 'hidden' }} />
-              <button onClick={stopScanner} style={{
-                width: '100%', marginTop: 8, background: '#e5e7eb', color: '#374151',
-                border: 'none', borderRadius: 10, padding: '10px', cursor: 'pointer',
-                fontWeight: 600
-              }}>
-                Stop
-              </button>
-            </div>
+            <button onClick={stopScanner} style={{
+              width: '100%', padding: '16px', background: '#e5e7eb', color: '#374151',
+              border: 'none', borderRadius: 12, fontSize: 16, fontWeight: 600, cursor: 'pointer',
+              marginBottom: 16
+            }}>
+              Stop
+            </button>
           )}
+
+          <div
+            id="reader"
+            style={{
+              width: '100%',
+              borderRadius: 12,
+              overflow: 'hidden',
+              display: scanning ? 'block' : 'none',
+              marginBottom: 16
+            }}
+          />
 
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             <input

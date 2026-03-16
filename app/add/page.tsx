@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { BrowserMultiFormatReader } from '@zxing/library'
+import { Html5Qrcode } from 'html5-qrcode'
 
 interface BookData {
   title: string
@@ -14,14 +14,13 @@ interface BookData {
 
 export default function AddBook() {
   const router = useRouter()
-  const videoRef = useRef<HTMLVideoElement>(null)
   const [scanning, setScanning] = useState(false)
   const [bookData, setBookData] = useState<BookData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<BookData[]>([])
-  const readerRef = useRef<BrowserMultiFormatReader | null>(null)
+  const scannerRef = useRef<Html5Qrcode | null>(null)
 
   useEffect(() => {
     return () => {
@@ -29,34 +28,33 @@ export default function AddBook() {
     }
   }, [])
 
-  function stopScanner() {
-    if (readerRef.current) {
-      readerRef.current.reset()
-    }
-    setScanning(false)
-  }
-
   async function startScanner() {
-    setScanning(true)
     setError('')
-    const codeReader = new BrowserMultiFormatReader()
-    readerRef.current = codeReader
+    const scanner = new Html5Qrcode('reader')
+    scannerRef.current = scanner
+    setScanning(true)
 
     try {
-      await codeReader.decodeFromConstraints(
-        { video: { facingMode: 'environment' } },
-        videoRef.current!,
-        async (result) => {
-          if (result) {
-            stopScanner()
-            await fetchBookByIsbn(result.getText())
-          }
-        }
+      await scanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 250, height: 150 } },
+        async (decodedText) => {
+          await stopScanner()
+          await fetchBookByIsbn(decodedText)
+        },
+        undefined
       )
     } catch {
       setError('Impossibile accedere alla fotocamera.')
       setScanning(false)
     }
+  }
+
+  async function stopScanner() {
+    if (scannerRef.current && scannerRef.current.isScanning) {
+      await scannerRef.current.stop()
+    }
+    setScanning(false)
   }
 
   async function fetchBookByIsbn(isbn: string) {
@@ -155,11 +153,12 @@ export default function AddBook() {
               📷 Scansiona barcode
             </button>
           ) : (
-            <div style={{ position: 'relative', marginBottom: 16 }}>
-              <video ref={videoRef} style={{ width: '100%', borderRadius: 12 }} />
+            <div style={{ marginBottom: 16 }}>
+              <div id="reader" style={{ width: '100%', borderRadius: 12, overflow: 'hidden' }} />
               <button onClick={stopScanner} style={{
-                position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,0.6)',
-                color: 'white', border: 'none', borderRadius: 8, padding: '6px 12px', cursor: 'pointer'
+                width: '100%', marginTop: 8, background: '#e5e7eb', color: '#374151',
+                border: 'none', borderRadius: 10, padding: '10px', cursor: 'pointer',
+                fontWeight: 600
               }}>
                 Stop
               </button>

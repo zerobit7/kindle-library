@@ -43,12 +43,16 @@ export default function AddBook() {
     readerRef.current = codeReader
 
     try {
-      await codeReader.decodeFromVideoDevice(null, videoRef.current!, async (result) => {
-        if (result) {
-          stopScanner()
-          await fetchBookByIsbn(result.getText())
+      await codeReader.decodeFromConstraints(
+        { video: { facingMode: 'environment' } },
+        videoRef.current!,
+        async (result) => {
+          if (result) {
+            stopScanner()
+            await fetchBookByIsbn(result.getText())
+          }
         }
-      })
+      )
     } catch {
       setError('Impossibile accedere alla fotocamera.')
       setScanning(false)

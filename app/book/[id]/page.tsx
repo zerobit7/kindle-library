@@ -21,8 +21,6 @@ const STATUS_LABELS: Record<string, string> = {
   letto: 'Letto',
 }
 
-const TELEGRAM_BOT = 'ZlibFPMybot'
-
 export default function BookDetail() {
   const router = useRouter()
   const params = useParams()
@@ -32,6 +30,7 @@ export default function BookDetail() {
   const [note, setNote] = useState('')
   const [rating, setRating] = useState(0)
   const [saving, setSaving] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     fetchBook()
@@ -63,10 +62,17 @@ export default function BookDetail() {
     router.push('/')
   }
 
-  function openTelegram() {
+  async function openTelegram() {
     if (!book) return
-    const message = encodeURIComponent(`${book.title} ${book.author}`)
-    window.open(`https://t.me/${TELEGRAM_BOT}?text=${message}`, '_blank')
+    const text = `${book.title} ${book.author}`
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // fallback silenzioso
+    }
+    window.open(`https://t.me/ZlibFPMybot`, '_blank')
   }
 
   if (!book) return <p style={{ padding: 20, color: '#9ca3af' }}>Caricamento...</p>
@@ -114,11 +120,11 @@ export default function BookDetail() {
       </div>
 
       <button onClick={openTelegram} style={{
-        width: '100%', padding: '14px', background: '#0088cc', color: 'white',
+        width: '100%', padding: '14px', background: copied ? '#10b981' : '#0088cc', color: 'white',
         border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600,
-        cursor: 'pointer', marginBottom: 20
+        cursor: 'pointer', marginBottom: 20, transition: 'background 0.3s'
       }}>
-        ✈️ Cerca su Telegram
+        {copied ? '✓ Testo copiato! Ora incolla su Telegram' : '✈️ Cerca su Telegram'}
       </button>
 
       <div style={{ marginBottom: 20 }}>
